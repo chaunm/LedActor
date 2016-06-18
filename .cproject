@@ -26,6 +26,7 @@
 								<option id="gnu.c.compiler.option.debugging.level.845633103" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1821997558" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="PI_RUNNING"/>
+									<listOptionValue builtIn="false" value="WIRINGPI_GPIOMEM=1"/>
 								</option>
 								<option id="gnu.c.compiler.option.include.paths.677499900" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/LedActor/src/lib/jansson}&quot;"/>

@@ -24,7 +24,8 @@ char ledBlinkingStateRunning;
 
 void LedInit()
 {
-	wiringPiSetupGpio();
+	//wiringPiSetupGpio();
+	wiringPiSetupSys();
 	pinMode(LED_RED_PIN, OUTPUT);
 	pinMode(LED_GREEN_PIN, OUTPUT);
 	digitalWrite(LED_RED_PIN, LOW);
