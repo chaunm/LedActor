@@ -361,7 +361,7 @@ int main(int argc, char* argv[])
 			printf("using: LedActor --<token> --<id>\n"
 					"id: guid of the actor\n"
 					"token: password of the actor\n");
-			exit(EXIT_SUCCESS);
+			return (EXIT_SUCCESS);
 			break;
 		case 'i':
 			guid = StrDup(optarg);
@@ -371,11 +371,19 @@ int main(int argc, char* argv[])
 			break;
 		case ':':
 			if (optopt == 'i')
+			{
 				printf("invalid option(s), using --help for help\n");
+				return EXIT_FAILURE;
+			}
 			break;
 		default:
 			break;
 		}
+	}
+	if (guid == NULL)
+	{
+		printf("invalid option(s), using --help for help\n");
+		return EXIT_FAILURE;
 	}
 	LedInit();
 	/* start actor process */
