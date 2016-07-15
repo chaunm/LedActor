@@ -305,9 +305,9 @@ static void LedActorOnRequestBlink(PVOID pParam)
 	free(responseTopic);
 }
 
-static void LedActorCreate(char* guid, char* psw)
+static void LedActorCreate(char* guid, char* psw, char* host, WORD port)
 {
-	pLedActor = ActorCreate(guid, psw);
+	pLedActor = ActorCreate(guid, psw, host, port);
 	//Register callback to handle request package
 	if (pLedActor == NULL)
 	{
@@ -319,10 +319,10 @@ static void LedActorCreate(char* guid, char* psw)
 	ActorRegisterCallback(pLedActor, ":request/blink", LedActorOnRequestBlink, CALLBACK_RETAIN);
 }
 
-static void LedActorStart(PLEDACTOROPTION option)
+static void LedActorStart(PACTOROPTION option)
 {
 	mosquitto_lib_init();
-	LedActorCreate(option->guid, option->psw);
+	LedActorCreate(option->guid, option->psw, option->host, option->port);
 	if (pLedActor == NULL)
 	{
 		mosquitto_lib_cleanup();
@@ -345,22 +345,27 @@ int main(int argc, char* argv[])
 	int opt= 0;
 	char *token = NULL;
 	char *guid = NULL;
-
+	char *host = NULL;
+	WORD port = 0;
 	// specific the expected option
 	static struct option long_options[] = {
 			{"id",      required_argument,  0, 'i' },
 			{"token", 	required_argument,  0, 't' },
+			{"host", 	required_argument,  0, 'H' },
+			{"port", 	required_argument, 	0, 'p' },
 			{"help", 	no_argument, 		0, 'h' }
 	};
 	int long_index;
 	/* Process option */
-	while ((opt = getopt_long(argc, argv,":hi:t:",
+	while ((opt = getopt_long(argc, argv,":hi:t:H:p:",
 			long_options, &long_index )) != -1) {
 		switch (opt) {
 		case 'h' :
-			printf("using: LedActor --<token> --<id>\n"
+			printf("using: LedActor --<token> --<id> --<host> --port<>\n"
 					"id: guid of the actor\n"
-					"token: password of the actor\n");
+					"token: password of the actor\n"
+					"host: mqtt server address, if omitted using local host\n"
+					"port: mqtt port, if omitted using port 1883\n");
 			return (EXIT_SUCCESS);
 			break;
 		case 'i':
@@ -368,6 +373,12 @@ int main(int argc, char* argv[])
 			break;
 		case 't':
 			token = StrDup(optarg);
+			break;
+		case 'H':
+			host = StrDup(optarg);
+			break;
+		case 'p':
+			port = atoi(optarg);
 			break;
 		case ':':
 			if (optopt == 'i')
@@ -387,9 +398,11 @@ int main(int argc, char* argv[])
 	}
 	LedInit();
 	/* start actor process */
-	LEDACTOROPTION actorOpt;
+	ACTOROPTION actorOpt;
 	actorOpt.guid = guid;
 	actorOpt.psw = token;
+	actorOpt.port = port;
+	actorOpt.host = host;
 	LedActorStart(&actorOpt);
 	return EXIT_SUCCESS;
 }
