@@ -67,13 +67,16 @@ static void LedActorOnRequestTurnOn(PVOID pParam)
 	if (pLedActor == NULL) return;
 	json_t* payloadJson = NULL;
 	json_t* paramsJson = NULL;
-	json_t* colorJson = NULL;
+	json_t* redJson = NULL;
+	json_t* greenJson = NULL;
+	json_t* blueJson = NULL;
 	json_t* responseJson = NULL;
 	json_t* statusJson = NULL;
+	BYTE red, green, blue;
 	PACTORHEADER header;
 	char* responseTopic;
 	char* responseMessage;
-	const char* colorMessage;
+	char* colorMessage;
 	znpSplitMessage = ActorSplitMessage(message);
 	if (znpSplitMessage == NULL)
 		return;
@@ -100,17 +103,24 @@ static void LedActorOnRequestTurnOn(PVOID pParam)
 		ActorFreeHeaderStruct(header);
 		return;
 	}
-	colorJson = json_object_get(paramsJson, "color");
-	if (colorJson == NULL)
-	{
-		json_decref(paramsJson);
-		json_decref(payloadJson);
-		ActorFreeSplitMessage(znpSplitMessage);
-		ActorFreeHeaderStruct(header);
-		return;
-	}
-	colorMessage = json_string_value(colorJson);
-	int result = LedTurnOn(colorMessage);
+	redJson = json_object_get(paramsJson, "red");
+	if (redJson == NULL)
+		red = 255;
+	else
+		red = json_integer_value(redJson);
+
+	greenJson = json_object_get(paramsJson, "green");
+	if (greenJson == NULL)
+		green = 255;
+	else
+		green = json_integer_value(greenJson);
+
+	blueJson = json_object_get(paramsJson, "blue");
+	if (blueJson == NULL)
+		blue = 255;
+	else
+		blue = json_integer_value(blueJson);
+	int result = LedTurnOn(red, green, blue);
 
 	//make response package
 	responseJson = json_object();
@@ -119,6 +129,8 @@ static void LedActorOnRequestTurnOn(PVOID pParam)
 	json_object_set(responseJson, "request", requestJson);
 	json_decref(requestJson);
 	json_t* resultJson;
+	colorMessage = calloc(20, sizeof(BYTE));
+	sprintf(colorMessage, "0x%02X%02X%02X", red, green, blue);
 	if (result == 0)
 	{
 		LedActorPublishStateChange(colorMessage, LED_ON);
@@ -129,7 +141,12 @@ static void LedActorOnRequestTurnOn(PVOID pParam)
 		LedActorPublishStateChange(colorMessage, LED_OFF);
 		resultJson = json_string("status.failure");
 	}
-	json_decref(colorJson);
+	if (redJson)
+		json_decref(redJson);
+	if (greenJson)
+		json_decref(greenJson);
+	if (blueJson)
+		json_decref(blueJson);
 	json_decref(paramsJson);
 	json_decref(payloadJson);
 	json_object_set(statusJson, "status", resultJson);
@@ -142,6 +159,7 @@ static void LedActorOnRequestTurnOn(PVOID pParam)
 	json_decref(responseJson);
 	ActorFreeSplitMessage(znpSplitMessage);
 	ActorSend(pLedActor, responseTopic, responseMessage, NULL, FALSE);
+	free(colorMessage);
 	free(responseMessage);
 	free(responseTopic);
 }
@@ -217,15 +235,18 @@ static void LedActorOnRequestBlink(PVOID pParam)
 	if (pLedActor == NULL) return;
 	json_t* payloadJson = NULL;
 	json_t* paramsJson = NULL;
-	json_t* colorJson = NULL;
+	json_t* redJson = NULL;
+	json_t* greenJson = NULL;
+	json_t* blueJson = NULL;
 	json_t* responseJson = NULL;
 	json_t* statusJson = NULL;
 	json_t* freqJson = NULL;
 	int freq;
+	BYTE red, green, blue;
 	PACTORHEADER header;
 	char* responseTopic;
 	char* responseMessage;
-	const char* colorMessage;
+	char* colorMessage;
 	znpSplitMessage = ActorSplitMessage(message);
 	if (znpSplitMessage == NULL)
 		return;
@@ -252,23 +273,31 @@ static void LedActorOnRequestBlink(PVOID pParam)
 		ActorFreeHeaderStruct(header);
 		return;
 	}
-	colorJson = json_object_get(paramsJson, "color");
-	if (colorJson == NULL)
-	{
-		json_decref(paramsJson);
-		json_decref(payloadJson);
-		ActorFreeSplitMessage(znpSplitMessage);
-		ActorFreeHeaderStruct(header);
-		return;
-	}
-	colorMessage = json_string_value(colorJson);
+	redJson = json_object_get(paramsJson, "red");
+	if (redJson == NULL)
+		red = 255;
+	else
+		red = json_integer_value(redJson);
+
+	greenJson = json_object_get(paramsJson, "green");
+	if (greenJson == NULL)
+		green = 255;
+	else
+		green = json_integer_value(greenJson);
+
+	blueJson = json_object_get(paramsJson, "blue");
+	if (blueJson == NULL)
+		blue = 255;
+	else
+		blue = json_integer_value(blueJson);
+
 	freqJson = json_object_get(paramsJson, "freq");
 	if (freqJson == NULL)
 		freq = 3;
 	else
 		freq = json_integer_value(freqJson);
 
-	int result = LedBlink(colorMessage, freq);
+	int result = LedBlink(red, green, blue, freq);
 
 	//make response package
 	responseJson = json_object();
@@ -277,6 +306,8 @@ static void LedActorOnRequestBlink(PVOID pParam)
 	json_object_set(responseJson, "request", requestJson);
 	json_decref(requestJson);
 	json_t* resultJson;
+	colorMessage = calloc(20, sizeof(BYTE));
+	sprintf(colorMessage, "0x%02X%02X%02X", red, green, blue);
 	if (result == 0)
 	{
 		LedActorPublishStateChange(colorMessage, LED_BLINK);
@@ -288,7 +319,13 @@ static void LedActorOnRequestBlink(PVOID pParam)
 		resultJson = json_string("status.failure");
 	}
 	json_decref(freqJson);
-	json_decref(colorJson);
+	if (redJson)
+		json_decref(redJson);
+	if (greenJson)
+		json_decref(greenJson);
+	if (blueJson)
+		json_decref(blueJson);
+	free(colorMessage);
 	json_decref(paramsJson);
 	json_decref(payloadJson);
 	json_object_set(statusJson, "status", resultJson);
@@ -404,5 +441,6 @@ int main(int argc, char* argv[])
 	actorOpt.port = port;
 	actorOpt.host = host;
 	LedActorStart(&actorOpt);
+	LedDeinit();
 	return EXIT_SUCCESS;
 }
