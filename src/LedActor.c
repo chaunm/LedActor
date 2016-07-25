@@ -23,13 +23,14 @@
 
 static PACTOR pLedActor;
 
-static void LedActorPublishStateChange(const char* color, char nState)
+static void LedActorPublishStateChange(const char* color, char nState, int period)
 {
 	if (pLedActor == NULL) return;
 	json_t* eventJson = json_object();
 	json_t* paramsJson = json_object();
 	json_t* colorJson = NULL;
 	json_t* stateJson = NULL;
+	json_t* periodJson = NULL;
 	switch (nState)
 	{
 	case LED_OFF:
@@ -42,6 +43,11 @@ static void LedActorPublishStateChange(const char* color, char nState)
 		stateJson = json_string("state.blinking");
 		break;
 	}
+	if (period != 0)
+	{
+		periodJson = json_integer(period);
+		json_object_set(paramsJson, "period", periodJson);
+	}
 	if (color != NULL)
 	{
 		colorJson = json_string(color);
@@ -52,6 +58,8 @@ static void LedActorPublishStateChange(const char* color, char nState)
 	char* eventMessage = json_dumps(eventJson, JSON_INDENT(4) | JSON_REAL_PRECISION(4));
 	char* topicName = ActorMakeTopicName(pLedActor->guid, "/:event/state_changed");
 	ActorSend(pLedActor, topicName, eventMessage, NULL, FALSE);
+	if (periodJson != NULL)
+		json_decref(periodJson);
 	json_decref(colorJson);
 	json_decref(stateJson);
 	json_decref(paramsJson);
@@ -133,12 +141,12 @@ static void LedActorOnRequestTurnOn(PVOID pParam)
 	sprintf(colorMessage, "0x%02X%02X%02X", red, green, blue);
 	if (result == 0)
 	{
-		LedActorPublishStateChange(colorMessage, LED_ON);
+		LedActorPublishStateChange(colorMessage, LED_ON, 0);
 		resultJson = json_string("status.success");
 	}
 	else
 	{
-		LedActorPublishStateChange(colorMessage, LED_OFF);
+		LedActorPublishStateChange(colorMessage, LED_OFF, 0);
 		resultJson = json_string("status.failure");
 	}
 	if (redJson)
@@ -212,7 +220,7 @@ static void LedActorOnRequestTurnOff(PVOID pParam)
 	json_object_set(responseJson, "request", requestJson);
 	json_decref(requestJson);
 	json_t* resultJson;
-	LedActorPublishStateChange(NULL, LED_OFF);
+	LedActorPublishStateChange(NULL, LED_OFF, 0);
 	resultJson = json_string("status.success");
 	json_object_set(statusJson, "status", resultJson);
 	json_decref(resultJson);
@@ -240,8 +248,8 @@ static void LedActorOnRequestBlink(PVOID pParam)
 	json_t* blueJson = NULL;
 	json_t* responseJson = NULL;
 	json_t* statusJson = NULL;
-	json_t* freqJson = NULL;
-	int freq;
+	json_t* periodJson = NULL;
+	int period;
 	BYTE red, green, blue;
 	PACTORHEADER header;
 	char* responseTopic;
@@ -291,13 +299,13 @@ static void LedActorOnRequestBlink(PVOID pParam)
 	else
 		blue = json_integer_value(blueJson);
 
-	freqJson = json_object_get(paramsJson, "freq");
-	if (freqJson == NULL)
-		freq = 3;
+	periodJson = json_object_get(paramsJson, "period");
+	if (periodJson == NULL)
+		period = 2000;
 	else
-		freq = json_integer_value(freqJson);
+		period = json_integer_value(periodJson);
 
-	int result = LedBlink(red, green, blue, freq);
+	int result = LedBlink(red, green, blue, period);
 
 	//make response package
 	responseJson = json_object();
@@ -310,15 +318,15 @@ static void LedActorOnRequestBlink(PVOID pParam)
 	sprintf(colorMessage, "0x%02X%02X%02X", red, green, blue);
 	if (result == 0)
 	{
-		LedActorPublishStateChange(colorMessage, LED_BLINK);
+		LedActorPublishStateChange(colorMessage, LED_BLINK, period);
 		resultJson = json_string("status.success");
 	}
 	else
 	{
-		LedActorPublishStateChange(colorMessage, LED_OFF);
+		LedActorPublishStateChange(colorMessage, LED_OFF, 0);
 		resultJson = json_string("status.failure");
 	}
-	json_decref(freqJson);
+	json_decref(periodJson);
 	if (redJson)
 		json_decref(redJson);
 	if (greenJson)

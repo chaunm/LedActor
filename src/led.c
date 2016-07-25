@@ -19,6 +19,12 @@
 pthread_t ledBlinkingThread;
 int blinkingFreq = 0;
 int ledState = LED_OFF;
+unsigned char redBlinkValue = 0;
+unsigned char greenBlinkValue = 0;
+unsigned char blueBlinkValue = 0;
+unsigned char redCurrent = 0;
+unsigned char blueCurrent = 0;
+unsigned char greenCurrent = 0;
 char ledBlinkingStateRunning;
 
 void LedInit()
@@ -87,21 +93,37 @@ void LedBlinkingProcess()
 			ledBlinkingStateRunning = FALSE;
 			return;
 		}
-		gpioWrite(LED_CTL_PIN, !(gpioRead(LED_CTL_PIN)));
-		printf("blink\n");
-		usleep(1000000 / blinkingFreq / 2);
+		//gpioWrite(LED_CTL_PIN, !(gpioRead(LED_CTL_PIN)));
+		redCurrent = redBlinkValue - redCurrent;
+		greenCurrent = greenBlinkValue - greenCurrent;
+		blueCurrent = blueBlinkValue - blueCurrent;
+		gpioHardwarePWM(LED_RED_PIN, PWM_FREQ, redCurrent * 1000000 / 255);
+		gpioHardwarePWM(LED_GREEN_PIN, PWM_FREQ, greenCurrent * 1000000 / 255);
+		gpioPWM(LED_BLUE_PIN, blueCurrent);
+		//usleep(1000000 / blinkingFreq / 2);
+		usleep(1000 * blinkingFreq / 2);
 	}
 }
 
-int LedBlink(BYTE red, BYTE green, BYTE blue, int freq)
+int LedBlink(BYTE red, BYTE green, BYTE blue, int period)
 {
-	blinkingFreq = freq;
+	blinkingFreq = period;
 	ledState = LED_BLINK;
+	redCurrent = red;
+	greenCurrent = green;
+	blueCurrent = blue;
+	redBlinkValue = red;
+	greenBlinkValue = green;
+	blueBlinkValue = blue;
+	gpioHardwarePWM(LED_RED_PIN, PWM_FREQ, red * 1000000 / 255);
+	gpioHardwarePWM(LED_GREEN_PIN, PWM_FREQ, green * 1000000 / 255);
+	gpioPWM(LED_BLUE_PIN, blue);
+	gpioWrite(LED_CTL_PIN, PI_HIGH);
 	if (ledBlinkingStateRunning == FALSE)
 	{
 		// create a blinking thread if necessary
 		printf("Start Blinking\n");
-		pthread_create(&ledBlinkingThread, NULL,(void*)&LedBlinkingProcess, NULL);
+		pthread_create(&ledBlinkingThread, NULL, (void*)&LedBlinkingProcess, NULL);
 		pthread_detach(ledBlinkingThread);
 		ledBlinkingStateRunning = TRUE;
 	}
