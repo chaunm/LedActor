@@ -376,6 +376,7 @@ static void LedActorStart(PACTOROPTION option)
 	while(1)
 	{
 		ActorProcessEvent(pLedActor);
+		LedTransition();
 		mosquitto_loop(pLedActor->client, 0, 1);
 		usleep(10000);
 	}

@@ -25,6 +25,9 @@ unsigned char blueBlinkValue = 0;
 unsigned char redCurrent = 0;
 unsigned char blueCurrent = 0;
 unsigned char greenCurrent = 0;
+unsigned char redSet = 0;
+unsigned char greenSet = 0;
+unsigned char blueSet = 0;
 char ledBlinkingStateRunning;
 
 void LedInit()
@@ -45,7 +48,11 @@ void LedInit()
 	// diviser 16 in mark/space mode give the pwm freq to be nearly 1171Hz
 	gpioSetPWMrange(LED_BLUE_PIN, 255);
 	gpioSetPWMfrequency(LED_BLUE_PIN, PWM_FREQ);
-
+	gpioPWM(LED_BLUE_PIN, 0);
+	gpioWrite(LED_BLUE_PIN, 0);
+	gpioHardwarePWM(LED_RED_PIN, PWM_FREQ, 0);
+	gpioHardwarePWM(LED_GREEN_PIN, PWM_FREQ, 0);
+	gpioWrite(LED_CTL_PIN, PI_HIGH);
 	ledState = LED_OFF;
 }
 
@@ -56,24 +63,43 @@ void LedDeinit()
 	gpioWrite(LED_CTL_PIN, 0);
 	gpioHardwarePWM(LED_RED_PIN, 0, 0);
 	gpioHardwarePWM(LED_GREEN_PIN, 0, 0);
-
+	gpioHardwarePWM(LED_RED_PIN, PWM_FREQ, 0);
+	gpioHardwarePWM(LED_GREEN_PIN, PWM_FREQ, 0);
 	gpioTerminate();
 }
 
 void LedTurnOff()
 {
-	gpioWrite(LED_CTL_PIN, PI_LOW);
-	gpioPWM(LED_BLUE_PIN, 0);
-	gpioHardwarePWM(LED_RED_PIN, 0, 0);
-	gpioHardwarePWM(LED_GREEN_PIN, 0, 0);
+	if (ledState == LED_BLINK)
+	{
+		redCurrent = redBlinkValue;
+		greenCurrent = greenBlinkValue;
+		blueCurrent = blueBlinkValue;
+	}
+	redSet = 0;
+	greenSet = 0;
+	blueSet = 0;
+//	gpioWrite(LED_CTL_PIN, PI_LOW);
+//	gpioPWM(LED_BLUE_PIN, 0);
+//	gpioHardwarePWM(LED_RED_PIN, 0, 0);
+//	gpioHardwarePWM(LED_GREEN_PIN, 0, 0);
 	ledState = LED_OFF;
 }
 
 int LedTurnOn(BYTE red, BYTE green, BYTE blue)
 {
-	gpioHardwarePWM(LED_RED_PIN, PWM_FREQ, red * 1000000 / 255);
-	gpioHardwarePWM(LED_GREEN_PIN, PWM_FREQ, green * 1000000 / 255);
-	gpioPWM(LED_BLUE_PIN, blue);
+	redSet = red;
+	greenSet = green;
+	blueSet = blue;
+	if (ledState == LED_BLINK)
+	{
+		redCurrent = redBlinkValue;
+		greenCurrent = greenBlinkValue;
+		blueCurrent = blueBlinkValue;
+	}
+	gpioHardwarePWM(LED_RED_PIN, PWM_FREQ, redCurrent * 1000000 / 255);
+	gpioHardwarePWM(LED_GREEN_PIN, PWM_FREQ, greenCurrent * 1000000 / 255);
+	gpioPWM(LED_BLUE_PIN, blueCurrent);
 	gpioWrite(LED_CTL_PIN, PI_HIGH);
 	ledState = LED_ON;
 	return 0;
@@ -94,13 +120,21 @@ void LedBlinkingProcess()
 			return;
 		}
 		//gpioWrite(LED_CTL_PIN, !(gpioRead(LED_CTL_PIN)));
-		redCurrent = redBlinkValue - redCurrent;
-		greenCurrent = greenBlinkValue - greenCurrent;
-		blueCurrent = blueBlinkValue - blueCurrent;
-		gpioHardwarePWM(LED_RED_PIN, PWM_FREQ, redCurrent * 1000000 / 255);
-		gpioHardwarePWM(LED_GREEN_PIN, PWM_FREQ, greenCurrent * 1000000 / 255);
-		gpioPWM(LED_BLUE_PIN, blueCurrent);
-		//usleep(1000000 / blinkingFreq / 2);
+		if ((redBlinkValue == 0) && (greenBlinkValue == 0) && (blueBlinkValue == 0))
+		{
+			redBlinkValue = redCurrent;
+			greenBlinkValue = greenCurrent;
+			blueBlinkValue = blueCurrent;
+		}
+		else
+		{
+			redBlinkValue = 0;
+			greenBlinkValue = 0;
+			blueBlinkValue = 0;
+		}
+		gpioHardwarePWM(LED_RED_PIN, PWM_FREQ, redBlinkValue * 1000000 / 255);
+		gpioHardwarePWM(LED_GREEN_PIN, PWM_FREQ, greenBlinkValue * 1000000 / 255);
+		gpioPWM(LED_BLUE_PIN, blueBlinkValue);
 		usleep(1000 * blinkingFreq / 2);
 	}
 }
@@ -109,15 +143,18 @@ int LedBlink(BYTE red, BYTE green, BYTE blue, int period)
 {
 	blinkingFreq = period;
 	ledState = LED_BLINK;
+	redSet = red;
+	greenSet = green;
+	blueSet = blue;
 	redCurrent = red;
 	greenCurrent = green;
 	blueCurrent = blue;
-	redBlinkValue = red;
-	greenBlinkValue = green;
-	blueBlinkValue = blue;
-	gpioHardwarePWM(LED_RED_PIN, PWM_FREQ, red * 1000000 / 255);
-	gpioHardwarePWM(LED_GREEN_PIN, PWM_FREQ, green * 1000000 / 255);
-	gpioPWM(LED_BLUE_PIN, blue);
+	redBlinkValue = redCurrent;
+	greenBlinkValue = greenCurrent;
+	blueBlinkValue = blueCurrent;
+	gpioHardwarePWM(LED_RED_PIN, PWM_FREQ, redBlinkValue * 1000000 / 255);
+	gpioHardwarePWM(LED_GREEN_PIN, PWM_FREQ, greenBlinkValue * 1000000 / 255);
+	gpioPWM(LED_BLUE_PIN, blueBlinkValue);
 	gpioWrite(LED_CTL_PIN, PI_HIGH);
 	if (ledBlinkingStateRunning == FALSE)
 	{
@@ -128,6 +165,30 @@ int LedBlink(BYTE red, BYTE green, BYTE blue, int period)
 		ledBlinkingStateRunning = TRUE;
 	}
 	return 0;
+}
+
+void LedTransition()
+{
+	if ((redCurrent == redSet) && (greenCurrent == greenSet) && (blueCurrent == blueSet))
+		return;
+	if (redCurrent < redSet)
+		redCurrent++;
+	if (redCurrent > redSet)
+		redCurrent--;
+	if (greenCurrent < greenSet)
+		greenCurrent++;
+	if (greenCurrent > greenSet)
+		greenCurrent--;
+	if (blueCurrent < blueSet)
+		blueCurrent++;
+	if (blueCurrent > blueSet)
+		blueCurrent--;
+	if ((ledState == LED_ON) || (ledState == LED_OFF))
+	{
+		gpioHardwarePWM(LED_RED_PIN, PWM_FREQ, redCurrent * 1000000 / 255);
+		gpioHardwarePWM(LED_GREEN_PIN, PWM_FREQ, greenCurrent * 1000000 / 255);
+		gpioPWM(LED_BLUE_PIN, blueCurrent);
+	}
 }
 
 

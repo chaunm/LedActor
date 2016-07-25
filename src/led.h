@@ -25,4 +25,5 @@ void LedDeinit();
 void LedTurnOff();
 int LedTurnOn(BYTE red, BYTE green, BYTE blue);
 int LedBlink(BYTE red, BYTE green, BYTE blue, int freq);
+void LedTransition();
 #endif /* LED_H_ */
