@@ -56,8 +56,8 @@ static void LedActorPublishStateChange(const char* color, char nState, int perio
 	json_object_set(paramsJson, "state", stateJson);
 	json_object_set(eventJson, "params", paramsJson);
 	char* eventMessage = json_dumps(eventJson, JSON_INDENT(4) | JSON_REAL_PRECISION(4));
-	char* topicName = ActorMakeTopicName(pLedActor->guid, "/:event/state_changed");
-	ActorSend(pLedActor, topicName, eventMessage, NULL, FALSE);
+	char* topicName = ActorMakeTopicName("event/", pLedActor->guid, "/state_changed");
+	ActorSend(pLedActor, topicName, eventMessage, NULL, FALSE, topicName);
 	if (periodJson != NULL)
 		json_decref(periodJson);
 	json_decref(colorJson);
@@ -162,11 +162,12 @@ static void LedActorOnRequestTurnOn(PVOID pParam)
 	json_object_set(responseJson, "response", statusJson);
 	json_decref(statusJson);
 	responseMessage = json_dumps(responseJson, JSON_INDENT(4) | JSON_REAL_PRECISION(4));
-	responseTopic = ActorMakeTopicName(header->origin, "/:response");
+	//responseTopic = ActorMakeTopicName(header->origin, "/:response");
+	responseTopic = StrDup(header->origin);
 	ActorFreeHeaderStruct(header);
 	json_decref(responseJson);
 	ActorFreeSplitMessage(znpSplitMessage);
-	ActorSend(pLedActor, responseTopic, responseMessage, NULL, FALSE);
+	ActorSend(pLedActor, responseTopic, responseMessage, NULL, FALSE, "response");
 	free(colorMessage);
 	free(responseMessage);
 	free(responseTopic);
@@ -227,11 +228,12 @@ static void LedActorOnRequestTurnOff(PVOID pParam)
 	json_object_set(responseJson, "response", statusJson);
 	json_decref(statusJson);
 	responseMessage = json_dumps(responseJson, JSON_INDENT(4) | JSON_REAL_PRECISION(4));
-	responseTopic = ActorMakeTopicName(header->origin, "/:response");
+	//responseTopic = ActorMakeTopicName(header->origin, "/:response");
+	responseTopic = StrDup(header->origin);
 	ActorFreeHeaderStruct(header);
 	json_decref(responseJson);
 	ActorFreeSplitMessage(znpSplitMessage);
-	ActorSend(pLedActor, responseTopic, responseMessage, NULL, FALSE);
+	ActorSend(pLedActor, responseTopic, responseMessage, NULL, FALSE, "response");
 	free(responseMessage);
 	free(responseTopic);
 }
@@ -341,11 +343,12 @@ static void LedActorOnRequestBlink(PVOID pParam)
 	json_object_set(responseJson, "response", statusJson);
 	json_decref(statusJson);
 	responseMessage = json_dumps(responseJson, JSON_INDENT(4) | JSON_REAL_PRECISION(4));
-	responseTopic = ActorMakeTopicName(header->origin, "/:response");
+	//responseTopic = ActorMakeTopicName(header->origin, "/:response");
+	responseTopic = StrDup(header->origin);
 	ActorFreeHeaderStruct(header);
 	json_decref(responseJson);
 	ActorFreeSplitMessage(znpSplitMessage);
-	ActorSend(pLedActor, responseTopic, responseMessage, NULL, FALSE);
+	ActorSend(pLedActor, responseTopic, responseMessage, NULL, FALSE, "response");
 	free(responseMessage);
 	free(responseTopic);
 }
@@ -359,9 +362,16 @@ static void LedActorCreate(char* guid, char* psw, char* host, WORD port)
 		printf("Couldn't create actor\n");
 		return;
 	}
+	char* topicName;
+	topicName = ActorMakeTopicName("action/", guid, "/turn_on");
 	ActorRegisterCallback(pLedActor, ":request/turn_on", LedActorOnRequestTurnOn, CALLBACK_RETAIN);
+	free(topicName);
+	topicName = ActorMakeTopicName("action/", guid, "/turn_on");
 	ActorRegisterCallback(pLedActor, ":request/turn_off", LedActorOnRequestTurnOff, CALLBACK_RETAIN);
+	free(topicName);
+	topicName = ActorMakeTopicName("action/", guid, "/turn_on");
 	ActorRegisterCallback(pLedActor, ":request/blink", LedActorOnRequestBlink, CALLBACK_RETAIN);
+	free(topicName);
 }
 
 static void LedActorStart(PACTOROPTION option)
