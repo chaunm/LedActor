@@ -364,13 +364,13 @@ static void LedActorCreate(char* guid, char* psw, char* host, WORD port)
 	}
 	char* topicName;
 	topicName = ActorMakeTopicName("action/", guid, "/turn_on");
-	ActorRegisterCallback(pLedActor, ":request/turn_on", LedActorOnRequestTurnOn, CALLBACK_RETAIN);
+	ActorRegisterCallback(pLedActor, topicName, LedActorOnRequestTurnOn, CALLBACK_RETAIN);
 	free(topicName);
-	topicName = ActorMakeTopicName("action/", guid, "/turn_on");
-	ActorRegisterCallback(pLedActor, ":request/turn_off", LedActorOnRequestTurnOff, CALLBACK_RETAIN);
+	topicName = ActorMakeTopicName("action/", guid, "/turn_off");
+	ActorRegisterCallback(pLedActor, topicName, LedActorOnRequestTurnOff, CALLBACK_RETAIN);
 	free(topicName);
-	topicName = ActorMakeTopicName("action/", guid, "/turn_on");
-	ActorRegisterCallback(pLedActor, ":request/blink", LedActorOnRequestBlink, CALLBACK_RETAIN);
+	topicName = ActorMakeTopicName("action/", guid, "/blink");
+	ActorRegisterCallback(pLedActor, topicName, LedActorOnRequestBlink, CALLBACK_RETAIN);
 	free(topicName);
 }
 
